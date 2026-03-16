@@ -1,6 +1,7 @@
 from pathlib import Path
 import inspect
 from threading import Thread
+from PIL import Image
 ex_path = Path(__file__).resolve().parent / "gui_maker" / "pyjinn_to_python.txt"
 in_path = Path(__file__).resolve().parent / "gui_maker" / "python_to_pyjinn.txt"
 path = Path(__file__).resolve().parent / "gui_maker" / "ui.pyj"
@@ -553,6 +554,94 @@ class TickBox:
                 }
             }
 
+class Picture:
+    def __init__(self,id,texture_path:Path,pos:tuple=(0,0),outline_width:int=0,outline_color:tuple=(255,100,100,100)):
+        self.id = id
+        self.pos = pos
+        self.texture_path = texture_path
+        self.outline_width = outline_width
+        self.outline_color = outline_color
+        self.color_resolution = 1
+
+    def set_outline_color(self,argb:tuple):
+        self.outline_color = argb
+    
+    def set_outline_width(self,width:int):
+        self.outline_width = width
+    
+    def set_pos(self,pos:tuple):
+        self.pos = pos
+    
+    def set_texture_path(self,texture_path):
+        self.texture_path = texture_path
+    
+    def set_color_resolution(self,resolution):
+        self.color_resolution = resolution
+    
+    def convert_picture(self):
+        step = self.color_resolution if self.color_resolution > 0 else 1
+        def quantize_color(r, g, b, a, step):
+            r = round(r / step) * step
+            g = round(g / step) * step
+            b = round(b / step) * step
+            return (a, r, g, b)
+        img = Image.open(self.texture_path).convert("RGBA")
+        width, height = img.size
+        pixels = img.load()
+        grid = []
+        for y in range(height):
+            row = []
+            for x in range(width):
+                r, g, b, a = pixels[x, y]
+                row.append(quantize_color(r, g, b, a, step))
+            grid.append(row)
+        covered = [[False] * width for _ in range(height)]
+        rects = []
+        def find_max_rect_at(sx, sy):
+            color = grid[sy][sx]
+            max_w = 0
+            while sx + max_w < width and not covered[sy][sx + max_w] and grid[sy][sx + max_w] == color:
+                max_w += 1
+            if max_w == 0:
+                return None
+            best_w, best_h = max_w, 1
+            cur_w = max_w
+            for dy in range(1, height - sy):
+                y = sy + dy
+                row_w = 0
+                while row_w < cur_w and not covered[y][sx + row_w] and grid[y][sx + row_w] == color:
+                    row_w += 1
+                if row_w == 0:
+                    break
+                cur_w = row_w
+                h = dy + 1
+                if cur_w * h > best_w * best_h:
+                    best_w, best_h = cur_w, h
+            return (sx, sy, best_w, best_h, color)
+        for y in range(height):
+            for x in range(width):
+                if covered[y][x]:
+                    continue
+                result = find_max_rect_at(x, y)
+                if result is None:
+                    continue
+                rx, ry, rw, rh, color = result
+                rects.append((rx, ry, rw, rh, color))
+                for dy in range(rh):
+                    for dx in range(rw):
+                        covered[ry + dy][rx + dx] = True
+        return rects
+    
+    def _debug_export(self,parent):
+        return {
+            "type":"Picture",
+            "parent":parent,
+            "pos":self.pos,
+            "outline_width":self.outline_width,
+            "outline_color":self.outline_color,
+            "picture":self.convert_picture()
+        }
+
 def render(exported):
     if isinstance(exported,Window): exported = exported.export()
     for job in job_info():
@@ -566,6 +655,7 @@ TickBoxes = []
 Buttons = []
 TextInputs = []
 Sliders = []
+Pictures = []
 
 GUI = {exported}
 Minecraft = JavaClass("net.minecraft.client.Minecraft")
@@ -618,6 +708,8 @@ def initiate(gui_override=None):
             TextInputs.append([GUI["widgets"][key]["pos"],GUI["widgets"][key]["size"],GUI["widgets"][key]["starting_text"],GUI["widgets"][key]["actions"]["while_typing"],GUI["widgets"][key]["actions"]["on_finished_typing"],False,key,True,GUI["widgets"][key]["color"],GUI["widgets"][key]["text_color"]])
         elif GUI["widgets"][key]["type"] == "Slider":
             Sliders.append([GUI["widgets"][key]["pos"],GUI["widgets"][key]["width"],GUI["widgets"][key]["starting_value"],GUI["widgets"][key]["actions"]["on_value_change"],False,True,key,GUI["widgets"][key]["color"],GUI["widgets"][key]["filled_color"],GUI["widgets"][key]["empty_color"]])
+        elif GUI["widgets"][key]["type"] == "Picture":
+            Pictures.append([GUI["widgets"][key]["pos"],key,GUI["widgets"][key]["picture"],True])
 initiate()
 
 def trigger(func,*args):
@@ -756,6 +848,13 @@ def draw_sliders(GuiGraphics,pos,width,value,selected,i,color,filled_color,empty
             if Sliders[i][3] is not None: trigger(Sliders[i][3]["callback"],str(new_val))
             old_val = new_val
 
+def draw_pictures(GuiGraphics,pos,picture):
+    x, y = GUI["pos"]
+    x = x + pos[0]
+    y = y + pos[1]
+    for px, py, width, height, color in picture:
+        GuiGraphics.fill(x + px, y + py, x + px + width, y + py + height, ARGB.color(*color))
+
 def handle_render(GuiGraphics,some_other_delta_time_crap_i_dont_care_about):
     if ShowMain:
         draw_window(GuiGraphics)
@@ -774,6 +873,10 @@ def handle_render(GuiGraphics,some_other_delta_time_crap_i_dont_care_about):
     for i in range(len(Sliders)):
         if Sliders[i][5]:
             draw_sliders(GuiGraphics,Sliders[i][0],Sliders[i][1],Sliders[i][2],Sliders[i][4],i,Sliders[i][7],Sliders[i][8],Sliders[i][9])
+    for pos, _, picture, show in Pictures:
+        if show:
+            draw_pictures(GuiGraphics,pos,picture)
+
 
 # TextB
 # pos 0, text 1, show 2, id 3, color 4
@@ -789,6 +892,9 @@ def handle_render(GuiGraphics,some_other_delta_time_crap_i_dont_care_about):
 
 # Slider:
 # pos 0, width 1, value 2, on_value_changed 3, selected 4, show 5, id 6, color 7, filled_color 8, empty_color 9
+
+# Picture
+# pos 0, id 1, picture 2, show 3
 
 def handle_mouse(event):
     global mouse
