@@ -709,7 +709,7 @@ def initiate(gui_override=None):
         elif GUI["widgets"][key]["type"] == "Slider":
             Sliders.append([GUI["widgets"][key]["pos"],GUI["widgets"][key]["width"],GUI["widgets"][key]["starting_value"],GUI["widgets"][key]["actions"]["on_value_change"],False,True,key,GUI["widgets"][key]["color"],GUI["widgets"][key]["filled_color"],GUI["widgets"][key]["empty_color"]])
         elif GUI["widgets"][key]["type"] == "Picture":
-            Pictures.append([GUI["widgets"][key]["pos"],key,GUI["widgets"][key]["picture"],True])
+            Pictures.append([GUI["widgets"][key]["pos"],key,GUI["widgets"][key]["picture"],False])
 initiate()
 
 def trigger(func,*args):
@@ -761,6 +761,34 @@ def parse_incoming(s):
     elif s.startswith("pos "):
         try: GUI["pos"] = (int(int(s[4:].split(",")[0])/gui_scale),int(int(s[4:].split(",")[1])/gui_scale))
         except: pass
+    elif s.startswith("settext "):
+        settext = s[8:].split(",")
+        for i in range(len(TextBoxes)):
+            if TextBoxes[i][3] == settext[0]:
+                TextBoxes[i][1] = settext[1]
+        for i in range(len(Buttons)):
+            if Buttons[i][8] == settext[0]:
+                Buttons[i][2] = settext[1]
+        for i in range(len(TextInputs)):
+            if TextInputs[i][6] == settext[0]:
+                TextInputs[i][2] = settext[1]
+    elif s.startswith("setpos "):
+        setpos = s[7:].split(",")
+        for i in range(len(TextBoxes)):
+            if TextBoxes[i][3] == setpos[0]:
+                TextBoxes[i][0] = (int(int(setpos[1])/gui_scale),int(int(setpos[2])/gui_scale))
+        for i in range(len(TickBoxes)):
+            if TickBoxes[i][5] == setpos[0]:
+                TickBoxes[i][0] = (int(int(setpos[1])/gui_scale),int(int(setpos[2])/gui_scale))
+        for i in range(len(Buttons)):
+            if Buttons[i][8] == setpos[0]:
+                Buttons[i][0] = (int(int(setpos[1])/gui_scale),int(int(setpos[2])/gui_scale))
+        for i in range(len(TextInputs)):
+            if TextInputs[i][6] == setpos[0]:
+                TextInputs[i][0] = (int(int(setpos[1])/gui_scale),int(int(setpos[2])/gui_scale))
+        for i in range(len(Sliders)):
+            if Sliders[i][6] == setpos[0]:
+                Sliders[i][0] = (int(int(setpos[1])/gui_scale),int(int(setpos[2])/gui_scale))
 
 def read():
     reader = BufferedReader(FileReader(in_path))
@@ -1017,14 +1045,10 @@ def reposition(x,y):
     _signal(f"pos {int(x)},{int(y)}")
 
 def set_text(id,s):
-    #TODO
-    # For widgets with text
-    _signal(f"settext {id} {s}")
+    _signal(f"settext {id},{s}")
 
 def set_pos(id,x,y):
-    #TODO
-    # For widgets
-    _signal(f"setpos {id} {x},{y}")
+    _signal(f"setpos {id},{x},{y}")
 
 def manage_callbacks():
     try:
