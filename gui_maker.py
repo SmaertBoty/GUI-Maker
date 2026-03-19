@@ -254,6 +254,9 @@ class Window:
             "outline_color":self.outline_color,
             "widgets":exported
         }
+    
+    def set_pos(self,x,y):
+        reposition(x,y)
 
 class ChildWindow:
     def __init__(self, id, pos:tuple=(0,0), size:tuple=(100,100)):
@@ -272,7 +275,7 @@ class ChildWindow:
             exported[widget_id] = self.widgets[widget_id]._debug_export(self.id)
         exported
         return {
-            "type":"GUI",
+            "type":"ChildGUI",
             "parent":parent,
             "pos":self.pos,
             "size":self.size,
@@ -304,6 +307,18 @@ class TextBox:
             "text":self.text,
             "color":self.color
         }
+
+    def set_pos(self,x,y):
+        set_pos(self.id,x,y)
+    
+    def set_text(self,s):
+        set_text(self.id,s)
+    
+    def change_pos(self,x,y):
+        set_pos(self.id,x,y)
+    
+    def change_text(self,s):
+        set_text(self.id,s)
 
 class TextInput:
     def __init__(self,id,starting_text:str="",pos:tuple=(0,0),size:tuple=(1,1),while_typing=DebugCallback,on_finished_typing=DebugCallback,color:tuple=(255,0,0,0),text_color:tuple=(255,255,255,255)):
@@ -354,6 +369,18 @@ class TextInput:
                 "on_finished_typing":self._on_finished_typing._debug_export()
             }
         }
+    
+    def set_pos(self,x,y):
+        set_pos(self.id,x,y)
+    
+    def set_text(self,s):
+        set_text(self.id,s)
+    
+    def change_pos(self,x,y):
+        set_pos(self.id,x,y)
+    
+    def change_text(self,s):
+        set_text(self.id,s)
 
 class Button:
     def __init__(self,id,pos:tuple=(0,0),size:tuple=(1,1),text="",on_press=DebugCallback,while_down=DebugCallback,on_release=DebugCallback,color:tuple=(255, 70, 70, 70),pressed_color:tuple=(255, 200, 150, 200),text_color:tuple=(255,255,255,255),text_offset:tuple=(0,0)):
@@ -420,6 +447,18 @@ class Button:
                 "on_release":self._on_release._debug_export()
             }
         }
+    
+    def set_pos(self,x,y):
+        set_pos(self.id,x,y)
+    
+    def set_text(self,s):
+        set_text(self.id,s)
+    
+    def change_pos(self,x,y):
+        set_pos(self.id,x,y)
+    
+    def change_text(self,s):
+        set_text(self.id,s)
 
 class Slider:
     def __init__(self,id,starting_value:int=0,pos:tuple=(0,0),width=50,on_value_change=DebugCallback,color:tuple=(255, 100, 70, 255),filled_color:tuple=(150, 100, 70, 255),empty_color:tuple=(255,0,0,0)):
@@ -469,6 +508,12 @@ class Slider:
                 "on_value_change":self._on_value_change._debug_export(),
             }
         }
+    
+    def set_pos(self,x,y):
+        set_pos(self.id,x,y)
+    
+    def change_pos(self,x,y):
+        set_pos(self.id,x,y)
 
 class DropdownMenu:
     def __init__(self,id,pos:tuple=(0,0),size:tuple=(5,1),starting_items:list=[],starting_item:int=0,on_item_selected=DebugCallback):
@@ -493,7 +538,7 @@ class DropdownMenu:
     
     def _debug_export(self,parent):
         return {
-            "type":"Button",
+            "type":"DropdownMenu",
             "parent":parent,
             "pos":self.pos,
             "size":self.size,
@@ -553,6 +598,12 @@ class TickBox:
                 "on_unticked":self._on_unticked._debug_export()
                 }
             }
+    
+    def set_pos(self,x,y):
+        set_pos(self.id,x,y)
+    
+    def change_pos(self,x,y):
+        set_pos(self.id,x,y)
 
 class Picture:
     def __init__(self,id,texture_path:Path,pos:tuple=(0,0),outline_width:int=0,outline_color:tuple=(255,100,100,100)):
@@ -641,6 +692,12 @@ class Picture:
             "outline_color":self.outline_color,
             "picture":self.convert_picture()
         }
+    
+    def set_pos(self,x,y):
+        set_pos(self.id,x,y)
+    
+    def change_pos(self,x,y):
+        set_pos(self.id,x,y)
 
 def render(exported):
     if isinstance(exported,Window): exported = exported.export()
@@ -697,6 +754,7 @@ if not in_path.exists():
 def initiate(gui_override=None):
     global TextBoxes, TickBoxes, Buttons, GUI
     if gui_override is not None: GUI = gui_override
+    GUI["pos"] = (GUI["pos"][0]/gui_scale,GUI["pos"][1]/gui_scale)
     for key in GUI["widgets"]:
         if GUI["widgets"][key]["type"] == "TextBox":
             TextBoxes.append([GUI["widgets"][key]["pos"],GUI["widgets"][key]["text"],True,key,GUI["widgets"][key]["color"]])
@@ -809,14 +867,14 @@ def draw_window(GuiGraphics):
     color = GUI["color"]
     outline_width = GUI["outline_width"]
     outline_color = GUI["outline_color"]
-    GuiGraphics.fill(x - outline_width, y - outline_width, width + outline_width, height + outline_width, ARGB.color(*outline_color))
-    GuiGraphics.fill(x, y, width, height, ARGB.color(*color))
+    GuiGraphics.fill(int(x - outline_width), int(y - outline_width), int(width + outline_width), int(height + outline_width), ARGB.color(*outline_color))
+    GuiGraphics.fill(int(x), int(y), int(width), int(height), ARGB.color(*color))
 
 def draw_text_boxes(GuiGraphics,pos,text,color):
     x, y = GUI["pos"]
     x = x + pos[0]
     y = y + pos[1]
-    GuiGraphics.drawString(mc.font, Component.literal(text), x, y, ARGB.color(*color), False)
+    GuiGraphics.drawString(mc.font, Component.literal(text), int(x), int(y), ARGB.color(*color), False)
 
 def draw_tick_boxes(GuiGraphics,pos,state,ticked_color,unticked_color,outline_color):
     x, y = GUI["pos"]
@@ -829,8 +887,8 @@ def draw_tick_boxes(GuiGraphics,pos,state,ticked_color,unticked_color,outline_co
     else:
         color = ARGB.color(*unticked_color)
     
-    GuiGraphics.fill(x, y, width, height, ARGB.color(*outline_color))
-    GuiGraphics.fill(x + 1, y + 1 , width - 1, height - 1, color)
+    GuiGraphics.fill(int(x), int(y), int(width), int(height), ARGB.color(*outline_color))
+    GuiGraphics.fill(int(x + 1), int(y + 1) , int(width - 1), int(height - 1), color)
 
 def draw_buttons(GuiGraphics,pos,size,text,state,callback,color,pressed_color,text_color,text_offset):
     x, y = GUI["pos"]
@@ -843,9 +901,9 @@ def draw_buttons(GuiGraphics,pos,size,text,state,callback,color,pressed_color,te
         if callback is not None: trigger(callback["callback"])
     else:
         color = ARGB.color(*color)
-    GuiGraphics.fill(x, y, width, height, color)
+    GuiGraphics.fill(int(x), int(y), int(width), int(height), color)
     offx, offy = text_offset
-    GuiGraphics.drawString(mc.font, Component.literal(text), x + offx, y + offy, ARGB.color(*text_color), False)
+    GuiGraphics.drawString(mc.font, Component.literal(text), int(x + offx), int(y + offy), ARGB.color(*text_color), False)
 
 def draw_text_inputs(GuiGraphics,pos,size,text,color,text_color):
     x, y = GUI["pos"]
@@ -853,19 +911,19 @@ def draw_text_inputs(GuiGraphics,pos,size,text,color,text_color):
     y = y + pos[1]
     width = x + size[0]
     height = y + size[1]
-    GuiGraphics.fill(x, y, width, height, ARGB.color(*color))
-    GuiGraphics.drawString(mc.font, Component.literal(text), x, y+1, ARGB.color(*text_color), False)
+    GuiGraphics.fill(int(x), int(y), int(width), int(height), ARGB.color(*color))
+    GuiGraphics.drawString(mc.font, Component.literal(text), int(x), int(y+1), ARGB.color(*text_color), False)
 
 def draw_sliders(GuiGraphics,pos,width,value,selected,i,color,filled_color,empty_color):
     global old_val
     x, y = GUI["pos"]
     x = x + pos[0]
     y = y + pos[1]
-    GuiGraphics.fill(x, y, x + width, y + 4, ARGB.color(*empty_color))
-    GuiGraphics.fill(x, y, x + int(width*value), y + 4, ARGB.color(*filled_color))
+    GuiGraphics.fill(int(x), int(y), int(x + width), int(y + 4), ARGB.color(*empty_color))
+    GuiGraphics.fill(int(x), int(y), int(x + int(width*value)), int(y + 4), ARGB.color(*filled_color))
     if int(width*value) < 4: num = 4
     else: num = int(width*value)
-    GuiGraphics.fill(x + num - 4, y, x + num, y + 4, ARGB.color(*color))
+    GuiGraphics.fill(int(x + num - 4), int(y), int(x + num), int(y + 4), ARGB.color(*color))
     if mouse and selected:
         mx = mc.mouseHandler.xpos()/gui_scale
         new_val = (mx - x + 2) / (x+width - x)
@@ -881,7 +939,7 @@ def draw_pictures(GuiGraphics,pos,picture):
     x = x + pos[0]
     y = y + pos[1]
     for px, py, width, height, color in picture:
-        GuiGraphics.fill(x + px, y + py, x + px + width, y + py + height, ARGB.color(*color))
+        GuiGraphics.fill(int(x + px), int(y + py), int(x + px + width), int(y + py + height), ARGB.color(*color))
 
 def handle_render(GuiGraphics,some_other_delta_time_crap_i_dont_care_about):
     if ShowMain:
@@ -895,7 +953,11 @@ def handle_render(GuiGraphics,some_other_delta_time_crap_i_dont_care_about):
     for pos, size, text, while_down, _, _, down, show, _, color, pressed_color, text_color, text_offset in Buttons:
         if show:
             draw_buttons(GuiGraphics,pos,size,text,down,while_down,color,pressed_color,text_color,text_offset)
-    for pos, size, text, _, _, _, _, show, color, text_color in TextInputs:
+    index = -1
+    for pos, size, text, _, _, selected, _, show, color, text_color in TextInputs:
+        index += 1
+        if selected:
+            TextInputs[index][2] = chat_input()[0]
         if show:
             draw_text_inputs(GuiGraphics,pos,size,text,color,text_color)
     for i in range(len(Sliders)):
@@ -991,18 +1053,7 @@ def handle_keys(event):
     if event.action != 0:
         for i in range(len(TextInputs)):
             if TextInputs[i][5] and TextInputs[i][7]:
-                if shift:
-                    key = GLFW[event.key]
-                else:
-                    key = GLFW[event.key].lower()
-                if GLFW[event.key].lower() == "space":
-                    key == " "
-                if not GLFW[event.key].lower() == "backspace" and len(key) == 1:
-                    TextInputs[i][2] = TextInputs[i][2] +  key
-                elif GLFW[event.key].lower() == "backspace":
-                    if len(TextInputs[i][2]) >= 1:
-                        TextInputs[i][2] = TextInputs[i][2][:-1]
-                elif GLFW[event.key].lower() == "enter":
+                if GLFW[event.key].lower() == "enter":
                     TextInputs[i][5] = False
                     if TextInputs[i][4] is not None: trigger(TextInputs[i][4]["callback"],TextInputs[i][2])
                     set_chat_input("")
@@ -1028,8 +1079,6 @@ HudRenderCallback.EVENT.register(HudRenderCallback(callback))
         f.write(code)
     execute(r"\gui_maker\ui")
 
-contents = None
-
 def _signal(s):
     with open(in_path,"a") as f:
         f.write("\n"+s)
@@ -1049,6 +1098,8 @@ def set_text(id,s):
 
 def set_pos(id,x,y):
     _signal(f"setpos {id},{x},{y}")
+
+contents = None
 
 def manage_callbacks():
     try:
